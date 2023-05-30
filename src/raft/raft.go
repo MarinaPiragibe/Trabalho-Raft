@@ -19,14 +19,17 @@ package raft
 
 import "sync"
 import "labrpc"
-import "time"
-import "sync"
+//import "time"
+//import "sync"
 
 // import "bytes"
 // import "encoding/gob"
 
 
+const minElectionTimeout = 150
+const maxElectionTimeout = 350
 
+const Follower = 0;
 //
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -220,7 +223,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.currentTerm = 0
 	rf.votedFor = -1
 
-
+	//go rf.raftCycle()
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
