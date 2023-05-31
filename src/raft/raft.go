@@ -19,8 +19,7 @@ package raft
 
 import "sync"
 import "labrpc"
-//import "time"
-//import "sync"
+import "time"
 
 // import "bytes"
 // import "encoding/gob"
@@ -29,7 +28,15 @@ import "labrpc"
 const minElectionTimeout = 150
 const maxElectionTimeout = 350
 
-const Follower = 0;
+const Follower = 2
+const Candidate = 1
+const Leader = 0
+
+func getRandomTimeout() time.Duration {
+	randTimeout := minElectionTimeout + rand.Intn(maxElectionTimeout-minElectionTimeout)
+	return time.Duration(randTimeout) * time.Millisecond
+}
+
 //
 // as each Raft peer becomes aware that successive log entries are
 // committed, the peer should send an ApplyMsg to the service (or
@@ -54,23 +61,25 @@ type Raft struct {
 	// Your data here (2A, 2B, 2C).
 	// Look at the paper's Figure 2 for a description of what
 	// state a Raft server must maintain.
-	status         int
-	currentTerm    int
-	votedFor       int
-	log            bool
-
-
-
-
+	Role           int
+	CurrentTerm    int
+	VotedFor       int
+	Log            []int
+	totalVotes     int
 }
 
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
-
 	var term int
 	var isleader bool
+
 	// Your code here (2A).
+	rf.mu.Lock()
+	term = rf.CurrentTerm
+	isleader = rf.Role == Leader
+	rf.mu.Unlock()
+
 	return term, isleader
 }
 
@@ -105,15 +114,16 @@ func (rf *Raft) readPersist(data []byte) {
 	}
 }
 
-
-
-
 //
 // example RequestVote RPC arguments structure.
 // field names must start with capital letters!
 //
 type RequestVoteArgs struct {
 	// Your data here (2A, 2B).
+	Term         int
+	CandidateId  int
+	LastLogIndex int
+	LastLogTerm  int
 }
 
 //
@@ -122,6 +132,19 @@ type RequestVoteArgs struct {
 //
 type RequestVoteReply struct {
 	// Your data here (2A).
+	Term        int
+	VoteGranted bool
+}
+
+type AppendEntriesArgs struct {
+	Term     int  
+	LeaderId int
+	Entries  []int  // would be used to replicate entry
+}
+
+type AppendEntriesReply struct {
+	Term    int 
+	Success bool
 }
 
 //
@@ -219,9 +242,9 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here (2A, 2B, 2C).
-	rf.status = Follower
-	rf.currentTerm = 0
-	rf.votedFor = -1
+	rf.Role = Follower
+	rf.CurrentTerm = 0
+	rf.VotedFor = -1
 
 	//go rf.raftCycle()
 	// initialize from state persisted before a crash
