@@ -152,6 +152,19 @@ type AppendEntriesReply struct {
 //
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here (2A, 2B).
+	rf.mu.Lock()
+	reply.Term = args.CurrentTerm
+
+	if args.Term > rf.CurrentTerm || (args.Term == rf.CurrentTerm && rf.VotedFor == -1) {
+		rf.State = Follower
+		rf.CurrentTerm = args.Term
+		reply.VoteGranted = true
+		rf.VotedFor = args.CandidateId
+		rf.changeStateChannel <- true
+	}
+
+	rf.mu.Unlock()
+
 }
 
 //
@@ -188,7 +201,14 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 	return ok
 }
 
+func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 
+}
+
+func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
+	ok := rf.peers[server].Call("Raft.AppendEntries", args, reply)
+	return ok
+}
 //
 // the service using Raft (e.g. a k/v server) wants to start
 // agreement on the next command to be appended to Raft's log. if this
