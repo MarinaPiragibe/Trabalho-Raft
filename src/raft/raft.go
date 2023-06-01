@@ -38,9 +38,8 @@ const Candidate = 1
 const Leader = 0
 
 func getRandomTimeout() time.Duration {
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
-	return time.Duration(r1.Intn(range_timeout) + election_timeout)
+	randTimeout := minElectionTimeout + rand.Intn(maxElectionTimeout-minElectionTimeout)
+	return time.Duration(randTimeout)
 }
 
 //
