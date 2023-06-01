@@ -156,7 +156,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	reply.Term = rf.CurrentTerm
 
 	if args.Term > rf.CurrentTerm || (args.Term == rf.CurrentTerm && rf.VotedFor == -1) {
-		rf.State = Follower
+		rf.Role = Follower
 		rf.CurrentTerm = args.Term
 		reply.VoteGranted = true
 		rf.VotedFor = args.CandidateId
