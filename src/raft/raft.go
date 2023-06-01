@@ -29,7 +29,6 @@ import "math/rand"
 const minElectionTimeout = 150
 const maxElectionTimeout = 350
 
-const timeout_heartbeat = 100
 
 const Follower = 2
 const Candidate = 1
@@ -355,7 +354,7 @@ func (rf *Raft) raftCycle() {
 				for true {
 					rf.triggerHeartbeat()
 					select {
-						case <-time.After(timeout_heartbeat * time.Millisecond):
+						case <-time.After(minElectionTimeout * time.Millisecond):
 						case <-rf.channelChangeRole:
 							break leaderCycle
 					}
