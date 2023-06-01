@@ -226,7 +226,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 		rf.VotedFor = args.LeaderId
 		rf.channelChangeRole <- true
 	}
-	
+
 	rf.mu.Unlock()
 }
 
@@ -266,6 +266,49 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 //
 func (rf *Raft) Kill() {
 	// Your code here, if desired.
+}
+
+func (rf *Raft) initElectionProcess() {
+	rv_args := RequestVoteArgs{}
+
+	rf.mu.Lock()
+	rv_args.Term = rf.CurrentTerm
+	rv_args.CandidateId = rf.me
+	rf.totalVotes = 0
+	rf.VotedFor = rf.me
+	rf.mu.Unlock()
+
+	necessaryMajority := (len(rf.peers) / 2) + 1
+
+	for i := 0; i < len(rf.peers); i++ {
+		if i == rf.me {
+			rf.mu.Lock()
+			rf.totalVotes++ 
+			rf.mu.Unlock()
+			continue
+		}
+		go func(serverId int) {   // TODO: Mudar go?
+			reply := RequestVoteReply{}
+			if rf.sendRequestVote(serverId, &rv_args, &reply) {
+				rf.mu.Lock()
+				if rf.Role == Candidate && reply.VoteGranted {
+					rf.totalVotes++
+					if rf.totalVotes >= necessaryMajority {
+						rf.Role = Leader
+						rf.channelElectionWinner <- true
+					}
+				}
+				
+				if reply.Term > rf.CurrentTerm {
+					rf.Role = Follower
+					rf.CurrentTerm = rv_args.Term
+					rf.VotedFor = -1
+					rf.channelChangeRole <- true
+				}
+				rf.mu.Unlock()
+			}
+		}(i)
+	}
 }
 
 //
