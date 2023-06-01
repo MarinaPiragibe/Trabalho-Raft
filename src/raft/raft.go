@@ -277,9 +277,9 @@ func (rf *Raft) triggerHeartbeat() {
 		rf.mu.Lock()
 		server := server_i
 		ae_args := &AppendEntriesArgs{}
-		ae_args.Entries = []int{}  // entries se fôssemos implementar replicação de entry
-		ae_args.Term = rf.CurrentTerm
 		ae_args.LeaderId = rf.me
+		ae_args.Term = rf.CurrentTerm
+		ae_args.Entries = []int{}  // entries se fôssemos implementar replicação de entry
 		rf.mu.Unlock()
 
 		go func() {
@@ -288,13 +288,12 @@ func (rf *Raft) triggerHeartbeat() {
 			rf.mu.Lock()
 
 			if reply.Term > rf.CurrentTerm {
+				rf.Role = Follower
 				rf.CurrentTerm = reply.Term
 				rf.VotedFor = -1
-				rf.Role = Follower
-
 				rf.channelChangeRole <- true
-
 			}
+			
 			rf.mu.Unlock()
 
 		}()
@@ -305,10 +304,10 @@ func (rf *Raft) initElectionProcess() {
 	rv_args := RequestVoteArgs{}
 
 	rf.mu.Lock()
-	rv_args.Term = rf.CurrentTerm
 	rv_args.CandidateId = rf.me
-	rf.totalVotes = 0
 	rf.VotedFor = rf.me
+	rv_args.Term = rf.CurrentTerm
+	rf.totalVotes = 0
 	rf.mu.Unlock()
 
 	necessaryMajority := (len(rf.peers) / 2) + 1
