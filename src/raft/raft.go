@@ -141,7 +141,7 @@ type RequestVoteReply struct {
 type AppendEntriesArgs struct {
 	Term     int  
 	LeaderId int
-	Entries  []int  // would be used to replicate entry
+	Entries  []int  // seria usado para replicar entry
 }
 
 type AppendEntriesReply struct {
@@ -157,13 +157,16 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	rf.mu.Lock()
 	reply.Term = rf.CurrentTerm
 
+	// TODO: Qual o sentido de (args.Term == rf.CurrentTerm && rf.VotedFor == -1) 
 	if args.Term > rf.CurrentTerm || (args.Term == rf.CurrentTerm && rf.VotedFor == -1) {
 		rf.Role = Follower
 		rf.CurrentTerm = args.Term
 		reply.VoteGranted = true
 		rf.VotedFor = args.CandidateId
-		rf.changeStateChannel <- true
+		rf.channelChangeRole <- true
 	}
+
+	// TODO: Não teria que atualizar quem pede voto caso ele esteja desatualizado?
 
 	rf.mu.Unlock()
 
