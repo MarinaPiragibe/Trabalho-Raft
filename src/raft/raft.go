@@ -165,8 +165,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	rf.mu.Lock()
 	reply.Term = rf.CurrentTerm
 
-	// TODO: Qual o sentido de (args.Term == rf.CurrentTerm && rf.VotedFor == -1) 
-	if args.Term > rf.CurrentTerm || (args.Term == rf.CurrentTerm && rf.VotedFor == -1) {
+	if args.Term > rf.CurrentTerm {
 		rf.Role = Follower
 		rf.CurrentTerm = args.Term
 		reply.VoteGranted = true
@@ -352,7 +351,7 @@ func (rf *Raft) raftCycle() {
 
 	for true {
 		if rf.Role == Leader {
-			leaderCycle:  // TODO: Ver se dá pra tirar as flags
+			leaderCycle:
 				for true {
 					rf.triggerHeartbeat()
 					select {
