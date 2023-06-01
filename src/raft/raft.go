@@ -30,8 +30,6 @@ const minElectionTimeout = 150
 const maxElectionTimeout = 350
 
 const timeout_heartbeat = 100
-const election_timeout = 300
-const range_timeout = 300
 
 const Follower = 2
 const Candidate = 1
