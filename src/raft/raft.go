@@ -269,7 +269,36 @@ func (rf *Raft) Kill() {
 }
 
 func (rf *Raft) triggerHeartbeat() {
+	for server_i := 0; server_i < len(rf.peers); server_i++ {
+		if server_i == rf.me {  
+			continue  // Pula heartbeat caso igual a ele mesmo
+		}
 
+		rf.mu.Lock()
+		server := server_i
+		ae_args := &AppendEntriesArgs{}
+		ae_args.Entries = []int{}  // entries se fôssemos implementar replicação de entry
+		ae_args.Term = rf.CurrentTerm
+		ae_args.LeaderId = rf.me
+		rf.mu.Unlock()
+
+		go func() {
+			reply := AppendEntriesReply{}
+			rf.sendAppendEntries(server, ae_args, &reply)
+			rf.mu.Lock()
+
+			if reply.Term > rf.CurrentTerm {
+				rf.CurrentTerm = reply.Term
+				rf.VotedFor = -1
+				rf.Role = Follower
+
+				rf.channelChangeRole <- true
+
+			}
+			rf.mu.Unlock()
+
+		}()
+	}
 }
 
 func (rf *Raft) initElectionProcess() {
@@ -289,7 +318,7 @@ func (rf *Raft) initElectionProcess() {
 			rf.mu.Lock()
 			rf.totalVotes++ 
 			rf.mu.Unlock()
-			continue
+			continue  // Pula processo caso igual a ele mesmo
 		}
 		go func(serverId int) {   // TODO: Mudar go?
 			reply := RequestVoteReply{}
