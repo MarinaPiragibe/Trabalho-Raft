@@ -20,6 +20,7 @@ package raft
 import "sync"
 import "labrpc"
 import "time"
+import "math/rand"
 
 // import "bytes"
 // import "encoding/gob"
@@ -212,16 +213,14 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 
 	reply.Term = rf.CurrentTerm
 
-	if args.Term < rf.CurrentTerm { reply.Success = false }
-
-	else if args.Term > rf.CurrentTerm {
+	if args.Term < rf.CurrentTerm { 
+		reply.Success = false
+	} else if args.Term > rf.CurrentTerm {
 		rf.Role = Follower
 		rf.CurrentTerm = args.Term
 		rf.VotedFor = args.LeaderId
 		rf.channelChangeRole <- true
-	}
-
-	else {
+	} else {
 		rf.Role = Follower
 		rf.VotedFor = args.LeaderId
 		rf.channelChangeRole <- true
@@ -355,28 +354,26 @@ func (rf *Raft) raftCycle() {
 						case <-rf.channelChangeRole:
 							break leaderCycle
 					}
-				}	
-		}
-		
-		else if rf.Role == Candidate {
+				}
+
+		} else if rf.Role == Candidate {
 			candidateCycle:
 				for true {
 					rf.initElectionProcess()
-					timeout = getTimeout()
+					timeout = getRandomTimeout()
 					select {
 						case <-time.After(timeout * time.Millisecond):
 							rf.mu.Lock()
 							rf.CurrentTerm++
 							rf.mu.Unlock()
-						case <-rf.electionWinChannel:
+						case <-rf.channelElectionWinner:
 							break candidateCycle
-						case <-rf.changeStateChannel:
+						case <-rf.channelChangeRole:
 							break candidateCycle
 					}
 				}
 
-		}
-		else if rf.Role == Follower {
+		} else if rf.Role == Follower {
 			followerCycle:
 				for true {
 					timeout = getRandomTimeout()
@@ -418,8 +415,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.CurrentTerm = 0
 	rf.VotedFor = -1
 	rf.totalVotes = 0
-	rf.changeStateChannel = make(chan bool)
-	rf.electionWinChannel = make(chan bool)
+	rf.channelChangeRole = make(chan bool)
+	rf.channelElectionWinner = make(chan bool)
 
 	go rf.raftCycle()
 
