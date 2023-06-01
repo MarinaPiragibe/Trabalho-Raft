@@ -268,6 +268,10 @@ func (rf *Raft) Kill() {
 	// Your code here, if desired.
 }
 
+func (rf *Raft) triggerHeartbeat() {
+
+}
+
 func (rf *Raft) initElectionProcess() {
 	rv_args := RequestVoteArgs{}
 
@@ -280,8 +284,8 @@ func (rf *Raft) initElectionProcess() {
 
 	necessaryMajority := (len(rf.peers) / 2) + 1
 
-	for i := 0; i < len(rf.peers); i++ {
-		if i == rf.me {
+	for server_i := 0; server_i < len(rf.peers); server_i++ {
+		if server_i == rf.me {
 			rf.mu.Lock()
 			rf.totalVotes++ 
 			rf.mu.Unlock()
@@ -298,7 +302,7 @@ func (rf *Raft) initElectionProcess() {
 						rf.channelElectionWinner <- true
 					}
 				}
-				
+
 				if reply.Term > rf.CurrentTerm {
 					rf.Role = Follower
 					rf.CurrentTerm = rv_args.Term
@@ -307,7 +311,7 @@ func (rf *Raft) initElectionProcess() {
 				}
 				rf.mu.Unlock()
 			}
-		}(i)
+		}(server_i)
 	}
 }
 
