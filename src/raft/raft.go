@@ -343,6 +343,58 @@ func (rf *Raft) initElectionProcess() {
 	}
 }
 
+func (rf *Raft) raftCycle() {
+	var timeout time.Duration
+
+	for true {
+		if rf.Role == Leader {
+			leaderCycle:  // TODO: Ver se dá pra tirar as flags
+				for true {
+					rf.triggerHeartbeat()
+					select {
+						case <-rf.channelChangeRole:
+							break leaderCycle
+					}
+				}	
+		}
+		
+		else if rf.Role == Candidate {
+			candidateCycle:
+				for true {
+					rf.initElectionProcess()
+					timeout = getTimeout()
+					select {
+						case <-time.After(timeout * time.Millisecond):
+							rf.mu.Lock()
+							rf.CurrentTerm++
+							rf.mu.Unlock()
+						case <-rf.electionWinChannel:
+							break candidateCycle
+						case <-rf.changeStateChannel:
+							break candidateCycle
+					}
+				}
+
+		}
+		else if rf.Role == Follower {
+			followerCycle:
+				for true {
+					timeout = getRandomTimeout()
+					select {
+						case <-time.After(timeout * time.Millisecond):
+							rf.mu.Lock()
+							rf.CurrentTerm++
+							rf.Role = Candidate
+							rf.mu.Unlock()
+							break followerCycle
+					}
+				}
+		}
+
+	}
+
+}
+
 //
 // the service or tester wants to create a Raft server. the ports
 // of all the Raft servers (including this one) are in peers[]. this
