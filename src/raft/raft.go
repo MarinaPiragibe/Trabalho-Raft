@@ -29,13 +29,18 @@ import "math/rand"
 const minElectionTimeout = 150
 const maxElectionTimeout = 350
 
+const timeout_heartbeat = 100
+const election_timeout = 300
+const range_timeout = 300
+
 const Follower = 2
 const Candidate = 1
 const Leader = 0
 
 func getRandomTimeout() time.Duration {
-	randTimeout := minElectionTimeout + rand.Intn(maxElectionTimeout-minElectionTimeout)
-	return time.Duration(randTimeout) * time.Millisecond
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
+	return time.Duration(r1.Intn(range_timeout) + election_timeout)
 }
 
 //
@@ -67,7 +72,7 @@ type Raft struct {
 	CurrentTerm           int
 	VotedFor              int
 	channelElectionWinner chan bool
-	Log                   []int
+	Log                   []int  // seria usado para replicação de logs
 	totalVotes            int
 }
 
@@ -278,6 +283,7 @@ func (rf *Raft) triggerHeartbeat() {
 		ae_args := &AppendEntriesArgs{}
 		ae_args.LeaderId = rf.me
 		ae_args.Term = rf.CurrentTerm
+		// TODO: desconsiderar linha abaixo?
 		ae_args.Entries = []int{}  // entries se fôssemos implementar replicação de entry
 		rf.mu.Unlock()
 
@@ -318,7 +324,7 @@ func (rf *Raft) initElectionProcess() {
 			rf.mu.Unlock()
 			continue  // Pula processo caso igual a ele mesmo
 		}
-		go func(serverId int) {   // TODO: Mudar go?
+		go func(serverId int) {
 			reply := RequestVoteReply{}
 			if rf.sendRequestVote(serverId, &rv_args, &reply) {
 				rf.mu.Lock()
@@ -351,6 +357,7 @@ func (rf *Raft) raftCycle() {
 				for true {
 					rf.triggerHeartbeat()
 					select {
+						case <-time.After(timeout_heartbeat * time.Millisecond):
 						case <-rf.channelChangeRole:
 							break leaderCycle
 					}
@@ -384,6 +391,8 @@ func (rf *Raft) raftCycle() {
 							rf.Role = Candidate
 							rf.mu.Unlock()
 							break followerCycle
+						case <-rf.channelChangeRole:
+						
 					}
 				}
 		}
