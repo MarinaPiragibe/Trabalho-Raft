@@ -207,7 +207,27 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 }
 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
+	// TODO: Precisa mesmo dessa função implementada?
+	rf.mu.Lock()
 
+	reply.Term = rf.CurrentTerm
+
+	if args.Term < rf.CurrentTerm { reply.Success = false }
+
+	else if args.Term > rf.CurrentTerm {
+		rf.Role = Follower
+		rf.CurrentTerm = args.Term
+		rf.VotedFor = args.LeaderId
+		rf.channelChangeRole <- true
+	}
+
+	else {
+		rf.Role = Follower
+		rf.VotedFor = args.LeaderId
+		rf.channelChangeRole <- true
+	}
+	
+	rf.mu.Unlock()
 }
 
 func (rf *Raft) sendAppendEntries(server int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
