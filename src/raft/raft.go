@@ -52,6 +52,11 @@ type ApplyMsg struct {
 	Snapshot    []byte // ignore for lab2; only used in lab3
 }
 
+type LogEntry struct {
+	Command interface{}
+	Term    int
+}
+
 //
 // A Go object implementing a single Raft peer.
 //
@@ -69,7 +74,7 @@ type Raft struct {
 	CurrentTerm           int
 	VotedFor              int
 	channelElectionWinner chan bool
-	Log                   []int  // seria usado para replicação de logs
+	Log                   []LogEntry  // seria usado para replicação de logs
 	totalVotes            int
 }
 
