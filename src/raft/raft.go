@@ -417,11 +417,14 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.Role = Follower
 	rf.CurrentTerm = 0
 	rf.VotedFor = -1
+	rf.totalVotes = 0
+	rf.changeStateChannel = make(chan bool)
+	rf.electionWinChannel = make(chan bool)
 
-	//go rf.raftCycle()
+	go rf.raftCycle()
+
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
-	
 	return rf
 }
