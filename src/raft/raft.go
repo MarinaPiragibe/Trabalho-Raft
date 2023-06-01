@@ -215,7 +215,6 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 }
 
 func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
-	// TODO: Precisa mesmo dessa função implementada?
 	rf.mu.Lock()
 
 	reply.Term = rf.CurrentTerm
@@ -285,8 +284,6 @@ func (rf *Raft) triggerHeartbeat() {
 		ae_args := &AppendEntriesArgs{}
 		ae_args.LeaderId = rf.me
 		ae_args.Term = rf.CurrentTerm
-		// TODO: desconsiderar linha abaixo?
-		ae_args.Entries = []int{}  // entries se fôssemos implementar replicação de entry
 		rf.mu.Unlock()
 
 		go func() {
