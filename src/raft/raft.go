@@ -28,6 +28,7 @@ import "math/rand"
 
 const minElectionTimeout = 150
 const maxElectionTimeout = 350
+const heartbeatPeriod = 100
 
 
 const Follower = 2
@@ -148,7 +149,7 @@ type RequestVoteReply struct {
 type AppendEntriesArgs struct {
 	Term     int  
 	LeaderId int
-	Entries  []int  // seria usado para replicar entry
+	Entries  []LogEntry  // seria usado para replicar entry
 }
 
 type AppendEntriesReply struct {
@@ -354,7 +355,7 @@ func (rf *Raft) raftCycle() {
 				for true {
 					rf.triggerHeartbeat()
 					select {
-						case <-time.After(minElectionTimeout * time.Millisecond):
+						case <-time.After(heartbeatPeriod * time.Millisecond):
 						case <-rf.channelChangeRole:
 							break leaderCycle
 					}
